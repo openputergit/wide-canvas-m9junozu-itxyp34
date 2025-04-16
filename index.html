@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileShare Hub - Secure File Sharing</title>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://cdn.skypack.dev/pin/axios@v1.6.2-LrPT6EjjzvYlGZKoP9Dh/mode=imports/optimized/axios.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .neo-box {
+            border-radius: 20px;
+            background: #e0e5ec;
+            box-shadow: 20px 20px 60px #bebebe,
+                       -20px -20px 60px #ffffff;
+        }
+        .neo-button {
+            border-radius: 12px;
+            background: #e0e5ec;
+            box-shadow: 5px 5px 10px #bebebe,
+                       -5px -5px 10px #ffffff;
+            transition: all 0.3s ease;
+        }
+        .neo-button:active {
+            box-shadow: inset 5px 5px 10px #bebebe,
+                       inset -5px -5px 10px #ffffff;
+        }
+        .loading {
+            display: none;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .news-card {
+            transition: transform 0.3s ease;
+        }
+        .news-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-[#e0e5ec] min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- File Upload Section -->
+        <div class="neo-box p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Secure File Sharing</h2>
+            <div class="mb-4">
+                <div class="neo-box p-4">
+                    <input type="file" id="fileInput" class="hidden" multiple>
+                    <label for="fileInput" class="neo-button cursor-pointer block text-center p-4 text-gray-700">
+                        <i class="bi bi-cloud-upload text-3xl"></i>
+                        <p class="mt-2">Drop files here or click to upload (Max: 10GB)</p>
+                    </label>
+                    <div id="uploadProgress" class="mt-4 hidden">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="fileList" class="mt-4 space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- News Section -->
+        <div class="neo-box p-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Latest Entertainment News</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="newsContainer">
+                <div class="loading"><i class="bi bi-arrow-repeat text-4xl"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = uploadProgress.querySelector('div div');
+        const newsContainer = document.getElementById('newsContainer');
+
+        // File Upload Handling
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (let file of files) {
+                if (file.size > 10 * 1024 * 1024 * 1024) { // 10GB limit
+                    alert('File size exceeds 10GB limit');
+                    continue;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('userId', 'user123');
+                formData.append('appSlug', 'fileshare-app-123');
+
+                try {
+                    uploadProgress.classList.remove('hidden');
+                    const response = await axios.post('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', formData, {
+                        headers: {
+                            'Authorization': 'Bearer k88CgyDlsLV64yCdvUZounJfmpx1'
+                        },
+                        onUploadProgress: (progressEvent) => {
+                            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                            progressBar.style.width = `${percentCompleted}%`;
+                        }
+                    });
+
+                    const fileElement = document.createElement('div');
+                    fileElement.className = 'neo-box p-4 flex justify-between items-center';
+                    fileElement.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${file.name}</p>
+                            <a href="${response.data.url}" class="text-blue-600 hover:underline" target="_blank">Download Link</a>
+                        </div>
+                        <button class="neo-button p-2" onclick="deleteFile('${response.data.path}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(fileElement);
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('Upload failed');
+                }
+            }
+        });
+
+        // File Deletion
+        async function deleteFile(filePath) {
+            try {
+                await axios.delete('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/delete', {
+                    headers: {
+                        'Authorization': 'Bearer k88CgyDlsLV64yCdvUZounJfmpx1'
+                    },
+                    data: {
+                        userId: 'user123',
+                        appSlug: 'fileshare-app-123',
+                        filePath: filePath
+                    }
+                });
+                // Remove file element from list
+                const fileElements = fileList.children;
+                for (let element of fileElements) {
+                    if (element.querySelector('a').href.includes(filePath)) {
+                        element.remove();
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Delete failed');
+            }
+        }
+
+        // News Fetching
+        async function fetchNews() {
+            try {
+                // Simulated news data (replace with actual API call)
+                const newsItems = [
+                    { title: 'New Anime Series Announcement', category: 'Anime', image: 'https://source.unsplash.com/300x200/?anime' },
+                    { title: 'Upcoming Movie Releases', category: 'Movies', image: 'https://source.unsplash.com/300x200/?movie' },
+                    { title: 'Popular Web Series Updates', category: 'Web Series', image: 'https://source.unsplash.com/300x200/?tv' }
+                ];
+
+                newsContainer.innerHTML = newsItems.map(item => `
+                    <div class="neo-box p-4 news-card">
+                        <img src="${item.image}" alt="${item.title}" class="w-full h-48 object-cover rounded-lg mb-4">
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">${item.category}</span>
+                        <h3 class="text-lg font-semibold mt-2">${item.title}</h3>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('News fetch error:', error);
+                newsContainer.innerHTML = '<p class="text-red-500">Failed to load news</p>';
+            }
+        }
+
+        fetchNews();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
